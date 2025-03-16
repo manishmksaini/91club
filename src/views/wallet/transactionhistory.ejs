@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" translate="no" data-dpr="1" dir="ltr" style="font-size: 37.5px;">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/damangame.png">
+    <meta name="google" content="notranslate">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>91Club - Transaction History</title>
+
+    <style>
+        .transaction-history {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .transaction-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .transaction-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .transaction-amount {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .transaction-amount.positive {
+            color: #28a745;
+        }
+        .transaction-amount.negative {
+            color: #dc3545;
+        }
+        .transaction-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            background-color: #f8f9fa;
+        }
+        .no-transactions {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .transaction-status {
+            float: right;
+            font-weight: 500;
+        }
+        .status-success {
+            color: #28a745;
+        }
+        .status-pending {
+            color: #ffc107;
+        }
+        .status-failed {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="transaction-history">
+        <h1>Transaction History</h1>
+        
+        <% if (typeof transactions !== 'undefined' && transactions.length > 0) { %>
+            <% transactions.forEach(transaction => { %>
+                <div class="transaction-item">
+                    <div class="transaction-date">
+                        <%= new Date(transaction.timestamp).toLocaleString() %>
+                    </div>
+                    
+                    <div class="transaction-type">
+                        <%= transaction.type %>
+                    </div>
+                    
+                    <div class="transaction-status <%= 'status-' + transaction.status.toLowerCase() %>">
+                        <%= transaction.status %>
+                    </div>
+                    
+                    <div class="transaction-details">
+                        <p>Transaction ID: <%= transaction.transactionId %></p>
+                        <p class="transaction-amount <%= parseFloat(transaction.amount) >= 0 ? 'positive' : 'negative' %>">
+                            <%= parseFloat(transaction.amount) >= 0 ? '+' : '' %><%= transaction.amount %> <%= transaction.currency %>
+                        </p>
+                    </div>
+                    
+                    <% if (transaction.description) { %>
+                        <div class="transaction-description">
+                            <%= transaction.description %>
+                        </div>
+                    <% } %>
+                </div>
+            <% }); %>
+            
+            <% if (transactions.length >= 10) { %>
+                <div class="load-more">
+                    <button onclick="loadMoreTransactions()">Load More</button>
+                </div>
+            <% } %>
+        <% } else { %>
+            <div class="no-transactions">
+                <p>No transactions found</p>
+            </div>
+        <% } %>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        
+        async function loadMoreTransactions() {
+            try {
+                currentPage++;
+                const response = await fetch(`/api/transactions?page=${currentPage}`);
+                const data = await response.json();
+                
+                if (data.transactions && data.transactions.length > 0) {
+                    const transactionContainer = document.querySelector('.transaction-history');
+                    
+                    data.transactions.forEach(transaction => {
+                        const transactionElement = createTransactionElement(transaction);
+                        transactionContainer.insertBefore(transactionElement, document.querySelector('.load-more'));
+                    });
+                    
+                    if (data.transactions.length < 10) {
+                        document.querySelector('.load-more').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading more transactions:', error);
+            }
+        }
+
+        function createTransactionElement(transaction) {
+            const div = document.createElement('div');
+            div.className = 'transaction-item';
+            div.innerHTML = `
+                <div class="transaction-date">
+                    ${new Date(transaction.timestamp).toLocaleString()}
+                </div>
+                <div class="transaction-type">
+                    ${transaction.type}
+                </div>
+                <div class="transaction-status status-${transaction.status.toLowerCase()}">
+                    ${transaction.status}
+                </div>
+                <div class="transaction-details">
+                    <p>Transaction ID: ${transaction.transactionId}</p>
+                    <p class="transaction-amount ${parseFloat(transaction.amount) >= 0 ? 'positive' : 'negative'}">
+                        ${parseFloat(transaction.amount) >= 0 ? '+' : ''}${transaction.amount} ${transaction.currency}
+                    </p>
+                </div>
+                ${transaction.description ? `
+                    <div class="transaction-description">
+                        ${transaction.description}
+                    </div>
+                ` : ''}
+            `;
+            return div;
+        }
+    </script>
+</body>
+
+</html>
